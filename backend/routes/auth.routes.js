@@ -1,6 +1,5 @@
 import express from 'express';
-import db from '../backend/database/mysqldb.js';
-import { PORT } from '../backend/config.js';
+import db from '../database/mysqldb.js';
 
 const router = express.Router();
 

@@ -1,5 +1,5 @@
-import mysql from 'mysql';
-import { mysqlpassword } from '../config/env';
+import mysql from 'mysql2';
+import { mysqlpassword } from '../config/env.js';
 
 const db = mysql.createConnection({
     host: 'localhost',
