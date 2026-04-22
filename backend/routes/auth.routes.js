@@ -10,7 +10,8 @@ router.post('/login', (req, res) => {
 
     db.query(sql, [email, password], (err, results) => {
         if (err) {
-            return res.status(500).json({ message: 'Server error' });
+            console.error('Login query error:', err);
+            return res.status(500).json({ message: 'Server error', code: err.code });
         }
 
         if (results.length > 0) {

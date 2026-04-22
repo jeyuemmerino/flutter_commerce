@@ -8,6 +8,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+app.use('/', authRoutes);
 app.use('/api', authRoutes);
 
 app.listen(PORT, () => {
