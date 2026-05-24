@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/commerce_provider.dart';
+import '../providers/theme_provider.dart';
+import '../utils/themes.dart';
 import 'auth_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
@@ -10,6 +12,7 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<CommerceProvider>();
+    final themeProvider = context.watch<ThemeProvider>();
     final user = provider.currentUser;
 
     return SafeArea(
@@ -34,6 +37,35 @@ class ProfileScreen extends StatelessWidget {
                 subtitle: Text(provider.currentShop!.description),
               ),
             ),
+          const SizedBox(height: 16),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text('Theme Settings', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+          ),
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: AppThemes.allThemes.keys.map((themeName) {
+                    final themeNames = AppThemes.themeNames;
+                    final isSelected = themeProvider.isTheme(themeName);
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: FilterChip(
+                        selected: isSelected,
+                        onSelected: (selected) {
+                          themeProvider.setTheme(themeName);
+                        },
+                        label: Text(themeNames[themeName] ?? themeName),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+          ),
           const SizedBox(height: 16),
           if (user == null) ...[
             Card(
