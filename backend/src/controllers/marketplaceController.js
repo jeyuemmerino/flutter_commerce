@@ -512,8 +512,8 @@ export async function createProduct(req, res) {
     }
 
     const result = await query(
-        'INSERT INTO products (shop_id, name, description, price, stock, category, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)',
-        [shopId, name, description, price, stock, category, imageUrl],
+        'INSERT INTO products (shop_id, owner_user_id, name, description, price, stock, category, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [shopId, ownerUserId, name, description, price, stock, category, imageUrl],
     );
 
     const product = await getProductById(result.insertId);
