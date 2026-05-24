@@ -45,7 +45,7 @@ A lightweight local marketplace demo with a Node.js + Express backend and a Flut
 1. Open PowerShell and go to the backend folder:
 
 ```powershell
-cd C:\Users\User\Desktop\flutter_commerce\backend
+cd backend
 ```
 
 2. Install Node deps:
@@ -81,7 +81,10 @@ Make sure `RESET_DB_ON_START=false` to preserve your data across restarts.
 ```powershell
 npm run dev
 ```
-
+ or if you want to run without nodemon:
+```powershell
+npm start
+```
 - If you see `Error: listen EADDRINUSE: address already in use :::5000`, another process is using port 5000. Stop that process or change `PORT` in the env file.
 
 
