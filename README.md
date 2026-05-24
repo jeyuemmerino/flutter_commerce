@@ -175,14 +175,6 @@ curl -X PUT http://localhost:5000/api/shops/42 \
 - Theme provider: `frontend/lib/providers/theme_provider.dart`
 
 
-If you want, I can also:
-- Add a `.env.example` to the backend folder for easier setup
-- Add a small script to create/import the DB schema automatically
-- Add a quick integration test or Postman collection for the main API flows
-
----
-If you'd like any specific part expanded (for example, a one-line `setup.sh` or PowerShell script to automate DB creation and seed), tell me which OS and I will add it.
-
 
 ENV example for backend `.env.development.local`:
 
