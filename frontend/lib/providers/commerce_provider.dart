@@ -432,228 +432,28 @@ class CommerceProvider extends ChangeNotifier {
   }
 
   void _loadMockData() {
-    // Mock shops
-    _shops = [
-      Shop(
-        id: 1,
-        ownerUserId: 2,
-        name: 'Tech Gadgets Hub',
-        description: 'Premium electronics and gadgets',
-        logoUrl: 'https://via.placeholder.com/100?text=Tech',
-      ),
-      Shop(
-        id: 2,
-        ownerUserId: 3,
-        name: 'Fashion Forward',
-        description: 'Latest fashion trends',
-        logoUrl: 'https://via.placeholder.com/100?text=Fashion',
-      ),
-      Shop(
-        id: 3,
-        ownerUserId: 4,
-        name: 'Home & Living',
-        description: 'Home decor and furniture',
-        logoUrl: 'https://via.placeholder.com/100?text=Home',
-      ),
-    ];
-
-    // Mock products
-    _products = [
-      Product(
-        id: 1,
-        shopId: 1,
-        ownerUserId: 2,
-        name: 'Wireless Headphones',
-        description: 'Premium noise-cancelling wireless headphones',
-        price: 199.99,
-        stock: 45,
-        category: 'Electronics',
-        shopName: 'Tech Gadgets Hub',
-        imageUrl: 'https://via.placeholder.com/300?text=Headphones',
-      ),
-      Product(
-        id: 2,
-        shopId: 1,
-        ownerUserId: 2,
-        name: 'USB-C Hub',
-        description: '7-in-1 USB-C hub with charging support',
-        price: 49.99,
-        stock: 120,
-        category: 'Electronics',
-        shopName: 'Tech Gadgets Hub',
-        imageUrl: 'https://via.placeholder.com/300?text=USB-Hub',
-      ),
-      Product(
-        id: 3,
-        shopId: 2,
-        ownerUserId: 3,
-        name: 'Casual T-Shirt',
-        description: 'Comfortable cotton t-shirt in multiple colors',
-        price: 29.99,
-        stock: 200,
-        category: 'Clothing',
-        shopName: 'Fashion Forward',
-        imageUrl: 'https://via.placeholder.com/300?text=T-Shirt',
-      ),
-      Product(
-        id: 4,
-        shopId: 2,
-        ownerUserId: 3,
-        name: 'Denim Jeans',
-        description: 'Classic blue denim jeans for all occasions',
-        price: 79.99,
-        stock: 80,
-        category: 'Clothing',
-        shopName: 'Fashion Forward',
-        imageUrl: 'https://via.placeholder.com/300?text=Jeans',
-      ),
-      Product(
-        id: 5,
-        shopId: 3,
-        ownerUserId: 4,
-        name: 'Decorative Pillow',
-        description: 'Soft decorative pillow with modern design',
-        price: 34.99,
-        stock: 150,
-        category: 'Home',
-        shopName: 'Home & Living',
-        imageUrl: 'https://via.placeholder.com/300?text=Pillow',
-      ),
-    ];
-
-    // Mock buyer orders (for testing)
-    if (isBuyer && _currentUser != null) {
-      _buyerOrders = [
-        Order(
-          id: 1001,
-          buyerUserId: _currentUser!.id,
-          shopId: 1,
-          buyerName: _currentUser!.name,
-          shopName: 'Tech Gadgets Hub',
-          status: 'delivered',
-          subtotal: 249.98,
-          total: 249.98,
-          shippingAddress: '123 Home St, Your City, State',
-          createdAt: DateTime.now().subtract(const Duration(days: 7)),
-          items: [
-            OrderItem(
-              id: 101,
-              productId: 1,
-              productName: 'Wireless Headphones',
-              quantity: 1,
-              price: 199.99,
-              imageUrl: 'https://via.placeholder.com/300?text=Headphones',
-            ),
-          ],
-        ),
-      ];
-    }
+    // Remove seeded products/shops: keep empty lists so the app starts without seeded inventory
+    _shops = [];
+    _products = [];
+    _buyerOrders = [];
+    _shopOrders = [];
+    _shopDashboard = null;
   }
 
   void _loadMockDataForSeller() {
-    _loadMockData();
-
-    // Create mock shop for current seller
+    // For sellers, start with no seeded products or orders
+    _shops = [];
+    _products = [];
+    _shopOrders = [];
+    _buyerOrders = [];
+    _shopDashboard = null;
     if (_currentUser != null && _currentUser!.role == 'seller') {
-      final mockShop = Shop(
-        id: 100,
+      _currentShop = Shop(
+        id: DateTime.now().millisecondsSinceEpoch ~/ 1000,
         ownerUserId: _currentUser!.id,
-        name: 'My Awesome Shop',
-        description: 'My personal shop',
-        logoUrl: 'https://via.placeholder.com/100?text=MyShop',
-      );
-      _currentShop = mockShop;
-
-      // Mock seller's products
-      final mockProducts = [
-        Product(
-          id: 101,
-          shopId: 100,
-          ownerUserId: _currentUser!.id,
-          name: 'Product A',
-          description: 'Description for product A',
-          price: 99.99,
-          stock: 50,
-          category: 'General',
-          shopName: 'My Awesome Shop',
-          imageUrl: 'https://via.placeholder.com/300?text=Product+A',
-        ),
-        Product(
-          id: 102,
-          shopId: 100,
-          ownerUserId: _currentUser!.id,
-          name: 'Product B',
-          description: 'Description for product B',
-          price: 149.99,
-          stock: 30,
-          category: 'General',
-          shopName: 'My Awesome Shop',
-          imageUrl: 'https://via.placeholder.com/300?text=Product+B',
-        ),
-      ];
-      _products = mockProducts;
-
-      // Mock seller orders
-      final mockOrders = [
-        Order(
-          id: 201,
-          buyerUserId: 5,
-          shopId: 100,
-          buyerName: 'John Buyer',
-          shopName: 'My Awesome Shop',
-          status: 'pending',
-          subtotal: 199.98,
-          total: 199.98,
-          shippingAddress: '123 Main St, City, State',
-          createdAt: DateTime.now(),
-          items: [
-            OrderItem(
-              id: 1,
-              productId: 101,
-              productName: 'Product A',
-              quantity: 2,
-              price: 99.99,
-              imageUrl: 'https://via.placeholder.com/300?text=Product+A',
-            ),
-          ],
-        ),
-        Order(
-          id: 202,
-          buyerUserId: 6,
-          shopId: 100,
-          buyerName: 'Jane Smith',
-          shopName: 'My Awesome Shop',
-          status: 'shipped',
-          subtotal: 149.99,
-          total: 149.99,
-          shippingAddress: '456 Oak Ave, Town, State',
-          createdAt: DateTime.now().subtract(const Duration(days: 2)),
-          items: [
-            OrderItem(
-              id: 2,
-              productId: 102,
-              productName: 'Product B',
-              quantity: 1,
-              price: 149.99,
-              imageUrl: 'https://via.placeholder.com/300?text=Product+B',
-            ),
-          ],
-        ),
-      ];
-      _shopOrders = mockOrders;
-
-      // Mock dashboard
-      _shopDashboard = ShopDashboard(
-        shop: mockShop,
-        products: mockProducts,
-        orders: mockOrders,
-        stats: ShopStats(
-          totalRevenue: 349.97,
-          totalOrders: 2,
-          pending: 1,
-          shipped: 1,
-          delivered: 0,
-        ),
+        name: '${_currentUser!.name}\'s Shop',
+        description: '',
+        logoUrl: '',
       );
     }
   }

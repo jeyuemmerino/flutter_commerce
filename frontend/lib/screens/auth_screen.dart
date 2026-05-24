@@ -33,7 +33,11 @@ class _AuthScreenState extends State<AuthScreen> {
       appBar: AppBar(
         title: Text(_isLogin ? 'Sign in' : 'Register'),
         leading: IconButton(
-          onPressed: provider.goGuest,
+          onPressed: () {
+            // switch to guest mode and clear navigation stack to avoid returning to a product detail
+            provider.goGuest();
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
           icon: const Icon(Icons.arrow_back),
         ),
       ),
