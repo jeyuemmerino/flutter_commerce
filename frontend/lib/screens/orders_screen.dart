@@ -43,12 +43,26 @@ class _OrderCard extends StatefulWidget {
 }
 
 class _OrderCardState extends State<_OrderCard> {
+  static const List<String> _supportedStatuses = ['pending', 'shipped', 'delivered'];
+
   String? _status;
 
   @override
   void initState() {
     super.initState();
-    _status = widget.order.status;
+    _status = _normalizeStatus(widget.order.status);
+  }
+
+  @override
+  void didUpdateWidget(covariant _OrderCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.order.status != widget.order.status) {
+      _status = _normalizeStatus(widget.order.status);
+    }
+  }
+
+  String _normalizeStatus(String status) {
+    return _supportedStatuses.contains(status) ? status : _supportedStatuses.first;
   }
 
   @override
@@ -78,10 +92,8 @@ class _OrderCardState extends State<_OrderCard> {
                 initialValue: _status,
                 items: const [
                   DropdownMenuItem(value: 'pending', child: Text('Pending')),
-                  DropdownMenuItem(value: 'confirmed', child: Text('Confirmed')),
                   DropdownMenuItem(value: 'shipped', child: Text('Shipped')),
                   DropdownMenuItem(value: 'delivered', child: Text('Delivered')),
-                  DropdownMenuItem(value: 'cancelled', child: Text('Cancelled')),
                 ],
                 onChanged: (value) => setState(() => _status = value),
                 decoration: const InputDecoration(labelText: 'Update status'),
@@ -93,7 +105,20 @@ class _OrderCardState extends State<_OrderCard> {
                   FilledButton(
                     onPressed: _status == null || _status == widget.order.status
                         ? null
-                        : () => provider.setOrderStatus(widget.order.id, _status!),
+                        : () async {
+                            try {
+                              await provider.setOrderStatus(widget.order.id, _status!);
+                            } catch (_) {
+                              if (!context.mounted) {
+                                return;
+                              }
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Failed to update order status')),
+                              );
+                              setState(() => _status = _normalizeStatus(widget.order.status));
+                            }
+                          },
                     child: const Text('Save status'),
                   ),
                 const Spacer(),
