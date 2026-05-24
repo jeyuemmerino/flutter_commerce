@@ -64,7 +64,16 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             const SizedBox(height: 12),
             TextFormField(controller: _descriptionController, decoration: const InputDecoration(labelText: 'Description'), maxLines: 4, validator: _required),
             const SizedBox(height: 12),
-            TextFormField(controller: _categoryController, decoration: const InputDecoration(labelText: 'Category'), validator: _required),
+            // Category dropdown
+            Consumer<CommerceProvider>(builder: (context, provider, _) {
+              return DropdownButtonFormField<String>(
+                initialValue: _categoryController.text.isEmpty ? 'General' : _categoryController.text,
+                items: provider.categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                onChanged: (v) => _categoryController.text = v ?? 'General',
+                decoration: const InputDecoration(labelText: 'Category'),
+                validator: _required,
+              );
+            }),
             const SizedBox(height: 12),
             Row(
               children: [

@@ -28,7 +28,13 @@ class _AppShellState extends State<AppShell> {
 
     if (provider.isGuest) {
       return Scaffold(
-        body: BrowseScreen(onProductTap: (product) => _openProduct(context, product)),
+        body: BrowseScreen(
+          onProductTap: (product) => _openProduct(context, product),
+          onGuestExit: () {
+            provider.showLaunch();
+            Navigator.of(context).popUntil((route) => route.isFirst);
+          },
+        ),
       );
     }
 

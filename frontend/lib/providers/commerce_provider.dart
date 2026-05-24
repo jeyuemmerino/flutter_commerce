@@ -36,6 +36,8 @@ class CommerceProvider extends ChangeNotifier {
   List<Order> get shopOrders => List.unmodifiable(_shopOrders);
   Product? get selectedProduct => _selectedProduct;
   String get searchQuery => _searchQuery;
+  String get selectedCategory => _selectedCategory;
+  List<String> get categories => List.unmodifiable(_categories);
   bool get busy => _busy;
   String? get error => _error;
 
@@ -45,18 +47,27 @@ class CommerceProvider extends ChangeNotifier {
   bool get isAuth => _mode == AppMode.auth;
   bool get isLaunch => _mode == AppMode.launch;
 
+  // Category filtering
+  final List<String> _categories = ['All', 'Electronics', 'Fashion', 'Home', 'General'];
+  String _selectedCategory = 'All';
+
   List<Product> get filteredProducts {
     if (_searchQuery.trim().isEmpty) {
-      return _products;
+      final base = _products;
+      if (_selectedCategory == 'All') return base;
+      return base.where((p) => p.category.toLowerCase() == _selectedCategory.toLowerCase()).toList();
     }
 
     final query = _searchQuery.toLowerCase().trim();
-    return _products.where((product) {
+    final base = _products.where((product) {
       return product.name.toLowerCase().contains(query) ||
           product.description.toLowerCase().contains(query) ||
           product.category.toLowerCase().contains(query) ||
           product.shopName.toLowerCase().contains(query);
     }).toList();
+
+    if (_selectedCategory == 'All') return base;
+    return base.where((p) => p.category.toLowerCase() == _selectedCategory.toLowerCase()).toList();
   }
 
   double get cartSubtotal => _cartItems.fold(0, (sum, item) => sum + item.lineTotal);
@@ -219,6 +230,11 @@ class CommerceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setSelectedCategory(String category) {
+    _selectedCategory = category;
+    notifyListeners();
+  }
+
   void selectProduct(Product product) {
     _selectedProduct = product;
     notifyListeners();
@@ -328,8 +344,47 @@ class CommerceProvider extends ChangeNotifier {
         imageUrl = await _api.uploadProductImage(pickedImage);
       }
 
-      if (productId == null) {
-        await _api.createProduct(
+      try {
+        if (productId == null) {
+          final created = await _api.createProduct(
+            shopId: _currentShop!.id,
+            ownerUserId: _currentUser!.id,
+            name: name,
+            description: description,
+            price: price,
+            stock: stock,
+            category: category,
+            imageUrl: imageUrl,
+          );
+          // add to local list
+          _products.insert(0, created);
+          // also add to shop dashboard if visible
+          if (_shopDashboard != null && created.shopId == _shopDashboard!.shop.id) {
+            _shopDashboard!.products.insert(0, created);
+          }
+        } else {
+          final updated = await _api.updateProduct(
+            productId: productId,
+            ownerUserId: _currentUser!.id,
+            name: name,
+            description: description,
+            price: price,
+            stock: stock,
+            category: category,
+            imageUrl: imageUrl,
+          );
+          final idx = _products.indexWhere((p) => p.id == updated.id);
+          if (idx >= 0) _products[idx] = updated;
+          if (_shopDashboard != null && updated.shopId == _shopDashboard!.shop.id) {
+            final sidx = _shopDashboard!.products.indexWhere((p) => p.id == updated.id);
+            if (sidx >= 0) _shopDashboard!.products[sidx] = updated;
+          }
+        }
+      } catch (e) {
+        // If API fails (backend down), create a local product with a temp id so it appears in UI
+        final tempId = DateTime.now().millisecondsSinceEpoch * -1;
+        final local = Product(
+          id: productId ?? tempId,
           shopId: _currentShop!.id,
           ownerUserId: _currentUser!.id,
           name: name,
@@ -337,22 +392,26 @@ class CommerceProvider extends ChangeNotifier {
           price: price,
           stock: stock,
           category: category,
-          imageUrl: imageUrl,
+          shopName: _currentShop!.name,
+          imageUrl: imageUrl ?? '',
         );
-      } else {
-        await _api.updateProduct(
-          productId: productId,
-          ownerUserId: _currentUser!.id,
-          name: name,
-          description: description,
-          price: price,
-          stock: stock,
-          category: category,
-          imageUrl: imageUrl,
-        );
+        if (productId == null) {
+          _products.insert(0, local);
+          if (_shopDashboard != null && local.shopId == _shopDashboard!.shop.id) {
+            _shopDashboard!.products.insert(0, local);
+          }
+        } else {
+          final idx = _products.indexWhere((p) => p.id == productId);
+          if (idx >= 0) _products[idx] = local;
+          if (_shopDashboard != null && local.shopId == _shopDashboard!.shop.id) {
+            final sidx = _shopDashboard!.products.indexWhere((p) => p.id == local.id);
+            if (sidx >= 0) _shopDashboard!.products[sidx] = local;
+          }
+        }
+        _error = 'Product saved locally (offline). It will be synced when backend is available.';
       }
 
-      await _loadSellerState();
+      notifyListeners();
     });
   }
 

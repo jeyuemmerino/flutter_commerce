@@ -7,9 +7,10 @@ import '../utils/app_config.dart';
 import 'auth_screen.dart';
 
 class BrowseScreen extends StatelessWidget {
-  const BrowseScreen({super.key, required this.onProductTap});
+  const BrowseScreen({super.key, required this.onProductTap, this.onGuestExit});
 
   final void Function(Product product) onProductTap;
+  final VoidCallback? onGuestExit;
 
   @override
   Widget build(BuildContext context) {
@@ -22,21 +23,59 @@ class BrowseScreen extends StatelessWidget {
           SliverAppBar(
             pinned: true,
             title: const Text('Browse products'),
-            actions: [IconButton(onPressed: provider.reloadCurrentView, icon: const Icon(Icons.refresh))],
+            actions: [
+              if (onGuestExit != null)
+                IconButton(
+                  tooltip: 'Exit guest',
+                  onPressed: onGuestExit,
+                  icon: const Icon(Icons.exit_to_app),
+                ),
+              IconButton(onPressed: provider.reloadCurrentView, icon: const Icon(Icons.refresh)),
+            ],
             bottom: PreferredSize(
               preferredSize: const Size.fromHeight(72),
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                child: TextField(
-                  onChanged: provider.setSearchQuery,
-                  decoration: InputDecoration(
-                    hintText: 'Search products or shops',
-                    prefixIcon: const Icon(Icons.search),
-                    filled: true,
-                    fillColor: Colors.white,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                    child: Column(
+                    children: [
+                      TextField(
+                        onChanged: provider.setSearchQuery,
+                        decoration: InputDecoration(
+                          hintText: 'Search products or shops',
+                          prefixIcon: const Icon(Icons.search),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          const SizedBox(width: 8),
+                          const Text('Category:'),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Consumer<CommerceProvider>(builder: (context, prov, _) {
+                              return DropdownButtonFormField<String>(
+                                initialValue: prov.selectedCategory,
+                                items: prov.categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                                onChanged: (v) => prov.setSelectedCategory(v ?? 'All'),
+                                decoration: const InputDecoration(border: OutlineInputBorder()),
+                              );
+                            }),
+                          ),
+                          const SizedBox(width: 12),
+                          // Always-visible exit button for guests (clear and accessible)
+                          if (onGuestExit != null)
+                            FilledButton.tonalIcon(
+                              onPressed: onGuestExit,
+                              icon: const Icon(Icons.exit_to_app),
+                              label: const Text('Exit guest'),
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
-                ),
               ),
             ),
           ),
