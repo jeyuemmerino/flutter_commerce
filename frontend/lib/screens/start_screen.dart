@@ -39,7 +39,7 @@ class StartScreen extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Marketplace Demo', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
+                            Text('Merino Marketplace', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
                             const SizedBox(height: 8),
                             const Text('Browse as a guest, register as buyer or seller, and manage shops, carts, orders, and invoices locally.'),
                             const SizedBox(height: 24),
