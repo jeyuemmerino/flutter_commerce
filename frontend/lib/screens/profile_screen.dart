@@ -17,16 +17,22 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _passwordController;
+  late TextEditingController _shopNameController;
+  late TextEditingController _shopDescriptionController;
   bool _isEditing = false;
+  bool _isEditingShop = false;
   bool _showPassword = false;
 
   @override
   void initState() {
     super.initState();
     final user = context.read<CommerceProvider>().currentUser;
+    final shop = context.read<CommerceProvider>().currentShop;
     _nameController = TextEditingController(text: user?.name ?? '');
     _emailController = TextEditingController(text: user?.email ?? '');
     _passwordController = TextEditingController();
+    _shopNameController = TextEditingController(text: shop?.name ?? '');
+    _shopDescriptionController = TextEditingController(text: shop?.description ?? '');
   }
 
   @override
@@ -34,6 +40,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _shopNameController.dispose();
+    _shopDescriptionController.dispose();
     super.dispose();
   }
 
@@ -89,8 +97,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             const SizedBox(height: 16),
-            
-            // Edit Profile Section
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
               child: Row(
@@ -194,6 +200,95 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(height: 16),
           ],
           
+            
+            // Shop Settings (for sellers only)
+            if (provider.isSeller && provider.currentShop != null) ...[
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Shop Settings', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
+                    TextButton.icon(
+                      onPressed: () => setState(() => _isEditingShop = !_isEditingShop),
+                      icon: Icon(_isEditingShop ? Icons.close : Icons.edit),
+                      label: Text(_isEditingShop ? 'Cancel' : 'Edit'),
+                    ),
+                  ],
+                ),
+              ),
+              
+              if (_isEditingShop) ...[
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        TextField(
+                          controller: _shopNameController,
+                          decoration: const InputDecoration(labelText: 'Shop Name'),
+                        ),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _shopDescriptionController,
+                          decoration: const InputDecoration(labelText: 'Shop Description'),
+                          minLines: 3,
+                          maxLines: 5,
+                        ),
+                        const SizedBox(height: 16),
+                        if (provider.error != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: Text(provider.error!, style: const TextStyle(color: Colors.red, fontSize: 12)),
+                          ),
+                        FilledButton(
+                          onPressed: provider.busy ? null : () {
+                            // ignore: unawaited_futures
+                            provider.updateShop(
+                              name: _shopNameController.text,
+                              description: _shopDescriptionController.text,
+                            ).then((_) {
+                              if (mounted && !provider.busy && provider.error == null) {
+                                setState(() => _isEditingShop = false);
+                                // ignore: use_build_context_synchronously
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(content: Text('Shop updated successfully')),
+                                );
+                              }
+                            });
+                          },
+                          child: provider.busy ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Save Changes'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ] else ...[
+                Card(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Name:', style: TextStyle(fontWeight: FontWeight.w500)),
+                            Text(provider.currentShop!.name),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        const Text('Description:', style: TextStyle(fontWeight: FontWeight.w500)),
+                        const SizedBox(height: 4),
+                        Text(provider.currentShop!.description),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
+            ],
           // Theme Settings
           Padding(
             padding: const EdgeInsets.only(bottom: 8),

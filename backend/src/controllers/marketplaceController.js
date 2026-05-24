@@ -380,6 +380,43 @@ export async function me(req, res) {
     return res.json({ user, shop });
 }
 
+export async function updateProfile(req, res) {
+    const userId = Number(req.params.userId);
+    const name = cleanString(req.body.name);
+    const email = cleanString(req.body.email).toLowerCase();
+    const password = cleanString(req.body.password);
+
+    if (!userId || !name || !email) {
+        return res.status(400).json({ message: 'userId, name, and email are required' });
+    }
+
+    const user = await getUserById(userId);
+    if (!user) {
+        return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if email is already taken by another user
+    const existingUser = await getUserByEmail(email);
+    if (existingUser && existingUser.id !== userId) {
+        return res.status(409).json({ message: 'Email is already in use' });
+    }
+
+    const updateData = [name, email, userId];
+    let updateQuery = 'UPDATE users SET name = ?, email = ?';
+
+    if (password) {
+        updateQuery += ', password_hash = ?';
+        updateData.splice(2, 0, hashPassword(password));
+    }
+
+    updateQuery += ' WHERE id = ?';
+
+    await query(updateQuery, updateData);
+
+    const updatedUser = await getUserById(userId);
+    return res.json(updatedUser);
+}
+
 export async function listShops(req, res) {
     const rows = await query(
         `
@@ -448,6 +485,29 @@ export async function createShop(req, res) {
 
     const shop = await getShopById(result.insertId);
     return res.status(201).json(shop);
+}
+
+export async function updateShop(req, res) {
+    const shopId = Number(req.params.shopId);
+    const name = cleanString(req.body.name);
+    const description = cleanString(req.body.description);
+
+    if (!shopId || !name) {
+        return res.status(400).json({ message: 'shopId and name are required' });
+    }
+
+    const shop = await getShopById(shopId);
+    if (!shop) {
+        return res.status(404).json({ message: 'Shop not found' });
+    }
+
+    await query(
+        'UPDATE shops SET name = ?, description = ? WHERE id = ?',
+        [name, description, shopId],
+    );
+
+    const updatedShop = await getShopById(shopId);
+    return res.json(updatedShop);
 }
 
 export async function getShopDashboard(req, res) {

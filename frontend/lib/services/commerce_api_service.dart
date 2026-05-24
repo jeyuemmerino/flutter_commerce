@@ -110,6 +110,23 @@ class CommerceApiService {
     return Shop.fromJson(Map<String, dynamic>.from(jsonDecode(response.body) as Map));
   }
 
+  Future<Shop> updateShop({
+    required int shopId,
+    required String name,
+    required String description,
+  }) async {
+    final response = await http.put(
+      _uri('/api/shops/$shopId'),
+      headers: const {'Content-Type': 'application/json'},
+      body: jsonEncode({
+        'name': name,
+        'description': description,
+      }),
+    );
+    _ensureSuccess(response);
+    return Shop.fromJson(Map<String, dynamic>.from(jsonDecode(response.body) as Map));
+  }
+
   Future<ShopDashboard> fetchShopDashboard(int shopId) async {
     final response = await http.get(_uri('/api/shops/$shopId/dashboard'));
     _ensureSuccess(response);

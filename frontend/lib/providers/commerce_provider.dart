@@ -233,6 +233,26 @@ class CommerceProvider extends ChangeNotifier {
     });
   }
 
+  Future<void> updateShop({required String name, required String description}) async {
+    if (_currentShop == null) return;
+    
+    await _runBusy(() async {
+      try {
+        final updatedShop = await _api.updateShop(
+          shopId: _currentShop!.id,
+          name: name,
+          description: description,
+        );
+        _currentShop = updatedShop;
+        _error = null;
+        notifyListeners();
+      } catch (e) {
+        _error = 'Failed to update shop: ${_extractErrorMessage(e)}';
+        notifyListeners();
+      }
+    });
+  }
+
   Future<void> reloadCurrentView() async {
     if (isBuyer) {
       await _loadBuyerState();
