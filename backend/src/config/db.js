@@ -71,6 +71,7 @@ async function createSchema(connection) {
         CREATE TABLE IF NOT EXISTS products (
             id INT AUTO_INCREMENT PRIMARY KEY,
             shop_id INT NOT NULL,
+            owner_user_id INT NOT NULL,
             name VARCHAR(255) NOT NULL,
             description TEXT NOT NULL,
             price DECIMAL(10,2) NOT NULL,
@@ -78,6 +79,7 @@ async function createSchema(connection) {
             category VARCHAR(120) NOT NULL,
             image_url TEXT,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            CONSTRAINT fk_products_owner FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE,
             CONSTRAINT fk_products_shop FOREIGN KEY (shop_id) REFERENCES shops(id) ON DELETE CASCADE
         )
     `);
@@ -136,6 +138,22 @@ async function createSchema(connection) {
     await connection.query('SET FOREIGN_KEY_CHECKS = 1');
 }
 
+async function ensureProductOwnerColumn(connection) {
+    const [columns] = await connection.query("SHOW COLUMNS FROM products LIKE 'owner_user_id'");
+
+    if (columns.length > 0) {
+        return;
+    }
+
+    await connection.query('ALTER TABLE products ADD COLUMN owner_user_id INT NOT NULL DEFAULT 0 AFTER shop_id');
+    await connection.query(`
+        UPDATE products
+        JOIN shops ON shops.id = products.shop_id
+        SET products.owner_user_id = shops.owner_user_id
+    `);
+    await connection.query('ALTER TABLE products MODIFY owner_user_id INT NOT NULL');
+}
+
 export async function initDatabase() {
     if (pool) {
         return pool;
@@ -162,6 +180,7 @@ export async function initDatabase() {
         }
 
         await createSchema(pool);
+        await ensureProductOwnerColumn(pool);
 
         await insertRowsIfEmpty(
             pool,
@@ -183,8 +202,8 @@ export async function initDatabase() {
             pool,
             'products',
             seedProducts,
-            'INSERT INTO products (id, shop_id, name, description, price, stock, category, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-            (row) => [row.id, row.shopId, row.name, row.description, row.price, row.stock, row.category, row.imageUrl],
+            'INSERT INTO products (id, shop_id, owner_user_id, name, description, price, stock, category, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+            (row) => [row.id, row.shopId, row.ownerUserId, row.name, row.description, row.price, row.stock, row.category, row.imageUrl],
         );
 
         await insertRowsIfEmpty(

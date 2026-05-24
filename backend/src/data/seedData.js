@@ -17,6 +17,7 @@ export const seedProducts = [
     {
         id: 1,
         shopId: 1,
+        ownerUserId: 2,
         name: 'Aurora Headphones',
         description: 'Wireless headphones with clean sound and long battery life.',
         price: 89.99,
@@ -27,6 +28,7 @@ export const seedProducts = [
     {
         id: 2,
         shopId: 1,
+        ownerUserId: 2,
         name: 'Studio Desk Lamp',
         description: 'Minimal desk lamp with soft light and adjustable brightness.',
         price: 34.5,
@@ -37,6 +39,7 @@ export const seedProducts = [
     {
         id: 3,
         shopId: 1,
+        ownerUserId: 2,
         name: 'Pocket Power Bank',
         description: 'Fast-charging power bank with dual USB output.',
         price: 39.95,
@@ -47,6 +50,7 @@ export const seedProducts = [
     {
         id: 4,
         shopId: 1,
+        ownerUserId: 2,
         name: 'Ceramic Mug Set',
         description: 'A simple mug set for coffee and tea lovers.',
         price: 22,
