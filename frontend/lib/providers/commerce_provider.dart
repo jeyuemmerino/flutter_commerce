@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../models/commerce_models.dart';
@@ -139,12 +140,12 @@ class CommerceProvider extends ChangeNotifier {
           await _loadBuyerState();
         }
       } catch (e) {
-        // Backend unavailable: do NOT auto-login with a mock user.
-        // Show a clear error so the user knows authentication couldn't be verified.
+        // Try to extract a meaningful error message from the API or network error
+        final msg = _extractErrorMessage(e);
         _currentUser = null;
         _currentShop = null;
         _selectedProduct = null;
-        _error = 'Login failed: unable to reach authentication service. Please try again or register when online.';
+        _error = msg;
         // keep mode as auth so UI remains on the sign-in screen
         _mode = AppMode.auth;
         notifyListeners();
@@ -458,6 +459,28 @@ class CommerceProvider extends ChangeNotifier {
     _buyerOrders = [];
     _shopOrders = [];
     _shopDashboard = null;
+  }
+
+  String _extractErrorMessage(Object e) {
+    try {
+      final text = e.toString();
+      // If the error contains JSON with a message field, extract it
+      if (text.contains('{') && text.contains('message')) {
+        final start = text.indexOf('{');
+        final jsonStr = text.substring(start);
+        final decoded = jsonDecode(jsonStr) as Map<String, dynamic>;
+        if (decoded['message'] != null) return decoded['message'].toString();
+      }
+      // Common network error indicators
+      final lower = text.toLowerCase();
+      if (lower.contains('socketexception') || lower.contains('failed host lookup') || lower.contains('connection refused') || lower.contains('connection reset')) {
+        return 'Login failed: unable to reach authentication service. Check your network or backend.';
+      }
+      // Fallback to the raw text
+      return text;
+    } catch (_) {
+      return 'Login failed: unknown error';
+    }
   }
 
   void _loadMockDataForSeller() {
