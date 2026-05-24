@@ -178,6 +178,14 @@ async function getCartItems(userId) {
     }));
 }
 
+// Helper to build cart response for a given user id
+async function getCartForUser(userId) {
+    const cart = await ensureCartForUser(userId);
+    const items = await getCartItems(userId);
+    const subtotal = items.reduce((sum, item) => sum + item.quantity * item.product.price, 0);
+    return { cart, items, subtotal };
+}
+
 async function getProductsByShop(shopId) {
     const rows = await query(
         `
@@ -569,10 +577,7 @@ export async function uploadProductImage(req, res) {
 
 export async function getCart(req, res) {
     const userId = Number(req.params.userId);
-    const cart = await ensureCartForUser(userId);
-    const items = await getCartItems(userId);
-
-    return res.json({ cart, items, subtotal: items.reduce((sum, item) => sum + item.quantity * item.product.price, 0) });
+    return res.json(await getCartForUser(userId));
 }
 
 export async function addCartItem(req, res) {
@@ -594,7 +599,7 @@ export async function addCartItem(req, res) {
         await query('INSERT INTO cart_items (cart_id, product_id, quantity) VALUES (?, ?, ?)', [cart.id, productId, quantity]);
     }
 
-    return res.status(201).json(await getCart(userId));
+    return res.status(201).json(await getCartForUser(userId));
 }
 
 export async function updateCartItem(req, res) {
@@ -614,7 +619,7 @@ export async function updateCartItem(req, res) {
         await query('UPDATE cart_items SET quantity = ? WHERE id = ?', [quantity, existing[0].id]);
     }
 
-    return res.json(await getCart(userId));
+    return res.json(await getCartForUser(userId));
 }
 
 export async function removeCartItem(req, res) {
@@ -622,14 +627,14 @@ export async function removeCartItem(req, res) {
     const productId = Number(req.params.productId);
     const cart = await ensureCartForUser(userId);
     await query('DELETE FROM cart_items WHERE cart_id = ? AND product_id = ?', [cart.id, productId]);
-    return res.json(await getCart(userId));
+    return res.json(await getCartForUser(userId));
 }
 
 export async function clearCart(req, res) {
     const userId = Number(req.params.userId);
     const cart = await ensureCartForUser(userId);
     await query('DELETE FROM cart_items WHERE cart_id = ?', [cart.id]);
-    return res.json(await getCart(userId));
+    return res.json(await getCartForUser(userId));
 }
 
 export async function checkoutCart(req, res) {

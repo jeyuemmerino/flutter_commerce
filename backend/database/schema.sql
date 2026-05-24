@@ -1,8 +1,19 @@
 -- MySQL schema for flutter_commerce
--- Run: mysql -u root -p flutterdb < schema.sql
+-- Run: mysql -u root -p ecommerce_db < schema.sql
 
-CREATE DATABASE IF NOT EXISTS `flutterdb` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-USE `flutterdb`;
+CREATE DATABASE IF NOT EXISTS `ecommerce_db` DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+USE `ecommerce_db`;
+
+SET FOREIGN_KEY_CHECKS = 0;
+
+DROP TABLE IF EXISTS shop_stats;
+DROP TABLE IF EXISTS order_items;
+DROP TABLE IF EXISTS orders;
+DROP TABLE IF EXISTS cart_items;
+DROP TABLE IF EXISTS carts;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS shops;
+DROP TABLE IF EXISTS users;
 
 -- Users (buyers and sellers)
 CREATE TABLE IF NOT EXISTS users (
@@ -20,7 +31,7 @@ CREATE TABLE IF NOT EXISTS shops (
   id INT AUTO_INCREMENT PRIMARY KEY,
   owner_user_id INT NOT NULL,
   name VARCHAR(255) NOT NULL,
-  description TEXT,
+  description TEXT NULL,
   logo_url VARCHAR(1024) DEFAULT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -32,7 +43,7 @@ CREATE TABLE IF NOT EXISTS products (
   shop_id INT NOT NULL,
   owner_user_id INT NOT NULL,
   name VARCHAR(255) NOT NULL,
-  description TEXT,
+  description TEXT NULL,
   price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   stock INT NOT NULL DEFAULT 0,
   category VARCHAR(100) DEFAULT 'General',
@@ -71,9 +82,7 @@ CREATE TABLE IF NOT EXISTS orders (
   status VARCHAR(50) NOT NULL DEFAULT 'pending',
   subtotal DECIMAL(10,2) NOT NULL DEFAULT 0.00,
   total DECIMAL(10,2) NOT NULL DEFAULT 0.00,
-  shipping_address TEXT,
-  shop_name VARCHAR(255) DEFAULT '',
-  buyer_name VARCHAR(255) DEFAULT '',
+  shipping_address TEXT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (buyer_user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (shop_id) REFERENCES shops(id) ON DELETE CASCADE,
@@ -88,7 +97,7 @@ CREATE TABLE IF NOT EXISTS order_items (
   product_name VARCHAR(255) NOT NULL,
   price DECIMAL(10,2) NOT NULL,
   quantity INT NOT NULL DEFAULT 1,
-  image_url VARCHAR(1024) DEFAULT '',
+  image_url VARCHAR(1024) DEFAULT NULL,
   FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
   FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -119,4 +128,4 @@ INSERT INTO products (shop_id, owner_user_id, name, description, price, stock, c
 -- Ensure carts for demo buyer
 INSERT INTO carts (user_id) SELECT id FROM users WHERE email = 'buyer@example.com' LIMIT 1;
 
-COMMIT;
+SET FOREIGN_KEY_CHECKS = 1;

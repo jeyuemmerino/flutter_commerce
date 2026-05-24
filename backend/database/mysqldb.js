@@ -5,7 +5,7 @@ const db = mysql.createConnection({
     host: 'localhost',
     user: 'root',
     password: mysqlpassword,
-    database: 'flutterdb'
+    database: 'ecommerce_db'
 });
 
 db.connect(err => {

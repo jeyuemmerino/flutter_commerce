@@ -41,6 +41,8 @@ async function resetSchema(connection) {
 }
 
 async function createSchema(connection) {
+    await connection.query('SET FOREIGN_KEY_CHECKS = 0');
+
     await connection.query(`
         CREATE TABLE IF NOT EXISTS users (
             id INT AUTO_INCREMENT PRIMARY KEY,
@@ -130,6 +132,8 @@ async function createSchema(connection) {
             CONSTRAINT fk_order_items_product FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
         )
     `);
+
+    await connection.query('SET FOREIGN_KEY_CHECKS = 1');
 }
 
 export async function initDatabase() {
