@@ -34,8 +34,8 @@ class _AuthScreenState extends State<AuthScreen> {
         title: Text(_isLogin ? 'Sign in' : 'Register'),
         leading: IconButton(
           onPressed: () {
-            // switch to guest mode and clear navigation stack to avoid returning to a product detail
-            provider.goGuest();
+            // return to the launch/start screen instead of entering guest browse
+            provider.showLaunch();
             Navigator.of(context).popUntil((route) => route.isFirst);
           },
           icon: const Icon(Icons.arrow_back),

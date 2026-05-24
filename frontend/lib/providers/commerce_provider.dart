@@ -71,6 +71,8 @@ class CommerceProvider extends ChangeNotifier {
         // Backend unavailable, use mock data
         _loadMockData();
       }
+      // Ensure no seeded products are populated
+      _products = [];
       _cartItems = [];
       _buyerOrders = [];
       _shopOrders = [];
@@ -93,6 +95,8 @@ class CommerceProvider extends ChangeNotifier {
       } catch (e) {
         _loadMockData();
       }
+      // Do not expose seeded/remote products in guest mode
+      _products = [];
     });
   }
 
@@ -101,6 +105,23 @@ class CommerceProvider extends ChangeNotifier {
     _error = null;
     notifyListeners();
   }
+
+  void showLaunch() {
+    _mode = AppMode.launch;
+    _error = null;
+    _currentUser = null;
+    _currentShop = null;
+    _shops = [];
+    _products = [];
+    _cartItems = [];
+    _buyerOrders = [];
+    _shopOrders = [];
+    _selectedProduct = null;
+    _shopDashboard = null;
+    notifyListeners();
+  }
+
+  
 
   Future<void> login({required String email, required String password}) async {
     await _runBusy(() async {
@@ -118,24 +139,16 @@ class CommerceProvider extends ChangeNotifier {
           await _loadBuyerState();
         }
       } catch (e) {
-        // Backend unavailable, use mock login
-        _currentUser = AuthUser(
-          id: email.contains('seller') ? 2 : 1,
-          name: email.split('@').first,
-          email: email,
-          role: email.contains('seller') ? 'seller' : 'buyer',
-          avatarUrl: 'https://via.placeholder.com/100?text=User',
-        );
+        // Backend unavailable: do NOT auto-login with a mock user.
+        // Show a clear error so the user knows authentication couldn't be verified.
+        _currentUser = null;
         _currentShop = null;
         _selectedProduct = null;
-        _error = null;
-        if (_currentUser!.role == 'seller') {
-          _mode = AppMode.seller;
-          await _loadSellerState();
-        } else {
-          _mode = AppMode.buyer;
-          await _loadBuyerState();
-        }
+        _error = 'Login failed: unable to reach authentication service. Please try again or register when online.';
+        // keep mode as auth so UI remains on the sign-in screen
+        _mode = AppMode.auth;
+        notifyListeners();
+        return;
       }
     });
   }
@@ -179,6 +192,7 @@ class CommerceProvider extends ChangeNotifier {
   }
 
   Future<void> logout() async {
+    // Clear user state and return to the launch screen
     _currentUser = null;
     _currentShop = null;
     _shopDashboard = null;
@@ -186,7 +200,7 @@ class CommerceProvider extends ChangeNotifier {
     _buyerOrders = [];
     _shopOrders = [];
     _selectedProduct = null;
-    await goGuest();
+    showLaunch();
   }
 
   Future<void> reloadCurrentView() async {
@@ -389,6 +403,8 @@ class CommerceProvider extends ChangeNotifier {
       // Backend unavailable, use mock data
       _loadMockData();
     }
+    // Remove any seeded products regardless of API
+    _products = [];
     notifyListeners();
   }
 
@@ -412,6 +428,10 @@ class CommerceProvider extends ChangeNotifier {
       // Backend unavailable, use mock data for seller
       _loadMockDataForSeller();
     }
+    // Ensure no seeded products are exposed
+    _products = [];
+    _shopOrders = [];
+    _shopDashboard = null;
     notifyListeners();
   }
 
