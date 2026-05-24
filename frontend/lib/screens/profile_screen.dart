@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/commerce_provider.dart';
+import 'auth_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -34,11 +35,31 @@ class ProfileScreen extends StatelessWidget {
               ),
             ),
           const SizedBox(height: 16),
-          FilledButton.tonalIcon(
-            onPressed: provider.logout,
-            icon: const Icon(Icons.logout),
-            label: const Text('Logout'),
-          ),
+          if (user == null) ...[
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('You are viewing as a guest. Sign in to access orders, cart and profile features.'),
+                    const SizedBox(height: 12),
+                    FilledButton(onPressed: () {
+                      // Push auth screen so guest can sign in/register
+                      provider.showAuth();
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AuthScreen()));
+                    }, child: const Text('Sign in')),
+                  ],
+                ),
+              ),
+            ),
+          ] else ...[
+            FilledButton.tonalIcon(
+              onPressed: provider.logout,
+              icon: const Icon(Icons.logout),
+              label: const Text('Logout'),
+            ),
+          ],
         ],
       ),
     );

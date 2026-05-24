@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/commerce_models.dart';
 import '../providers/commerce_provider.dart';
 import '../utils/app_config.dart';
+import 'auth_screen.dart';
 
 class BrowseScreen extends StatelessWidget {
   const BrowseScreen({super.key, required this.onProductTap});
@@ -128,7 +129,12 @@ class _ProductCard extends StatelessWidget {
                   if (isBuyer)
                     FilledButton(onPressed: onAddToCart, child: const Text('Add to cart'))
                   else
-                    const Text('Tap to view details'),
+                    FilledButton(onPressed: () {
+                      // Redirect guests to auth screen to sign in before performing actions
+                      final provider = context.read<CommerceProvider>();
+                      provider.showAuth();
+                      Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AuthScreen()));
+                    }, child: const Text('Sign in to add')),
                 ],
               ),
             ),
