@@ -45,24 +45,27 @@ class ProfileScreen extends StatelessWidget {
           Card(
             child: Padding(
               padding: const EdgeInsets.all(12),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: AppThemes.allThemes.keys.map((themeName) {
-                    final themeNames = AppThemes.themeNames;
-                    final isSelected = themeProvider.isTheme(themeName);
-                    return Padding(
-                      padding: const EdgeInsets.only(right: 8),
-                      child: FilterChip(
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          themeProvider.setTheme(themeName);
-                        },
-                        label: Text(themeNames[themeName] ?? themeName),
-                      ),
-                    );
-                  }).toList(),
-                ),
+              child: DropdownButton<String>(
+                isExpanded: true,
+                value: themeProvider.currentTheme,
+                onChanged: (themeName) {
+                  if (themeName != null) {
+                    themeProvider.setTheme(themeName);
+                  }
+                },
+                items: AppThemes.allThemes.keys.map((themeName) {
+                  final themeNames = AppThemes.themeNames;
+                  return DropdownMenuItem<String>(
+                    value: themeName,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.palette, size: 18),
+                        const SizedBox(width: 8),
+                        Text(themeNames[themeName] ?? themeName),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
             ),
           ),
