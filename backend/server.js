@@ -1,16 +1,14 @@
-import express from 'express';
-import cors from 'cors';
-import authRoutes from './routes/auth.routes.js';
-import { PORT } from './config/env.js';
+import app from './src/app.js';
+import { initDatabase } from './src/config/db.js';
+import { PORT } from './src/config/env.js';
 
-const app = express();
+try {
+    await initDatabase();
 
-app.use(cors());
-app.use(express.json());
-
-app.use('/', authRoutes);
-app.use('/api', authRoutes);
-
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});
+    app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+    });
+} catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+}
