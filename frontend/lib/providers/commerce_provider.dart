@@ -212,6 +212,27 @@ class CommerceProvider extends ChangeNotifier {
     showLaunch();
   }
 
+  Future<void> updateProfile({required String name, required String email, String? password}) async {
+    if (_currentUser == null) return;
+    
+    await _runBusy(() async {
+      try {
+        final updatedUser = await _api.updateProfile(
+          userId: _currentUser!.id,
+          name: name,
+          email: email,
+          password: password,
+        );
+        _currentUser = updatedUser;
+        _error = null;
+        notifyListeners();
+      } catch (e) {
+        _error = 'Failed to update profile: ${_extractErrorMessage(e)}';
+        notifyListeners();
+      }
+    });
+  }
+
   Future<void> reloadCurrentView() async {
     if (isBuyer) {
       await _loadBuyerState();

@@ -27,13 +27,31 @@ class _AppShellState extends State<AppShell> {
     final provider = context.watch<CommerceProvider>();
 
     if (provider.isGuest) {
-      return Scaffold(
-        body: BrowseScreen(
+      // Guest view with navigation bar
+      final guestPages = [
+        BrowseScreen(
           onProductTap: (product) => _openProduct(context, product),
           onGuestExit: () {
             provider.showLaunch();
             Navigator.of(context).popUntil((route) => route.isFirst);
           },
+        ),
+        const BuyerCartScreen(),
+        const ProfileScreen(),
+      ];
+
+      const guestDestinations = [
+        NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Shop'),
+        NavigationDestination(icon: Icon(Icons.shopping_cart_outlined), selectedIcon: Icon(Icons.shopping_cart), label: 'Cart'),
+        NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
+      ];
+
+      return Scaffold(
+        body: IndexedStack(index: _index.clamp(0, guestPages.length - 1), children: guestPages),
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: _index.clamp(0, guestDestinations.length - 1),
+          onDestinationSelected: (value) => setState(() => _index = value),
+          destinations: guestDestinations,
         ),
       );
     }

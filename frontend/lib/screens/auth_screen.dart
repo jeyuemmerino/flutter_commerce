@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/commerce_provider.dart';
+import '../providers/theme_provider.dart';
+import '../utils/themes.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -28,6 +30,7 @@ class _AuthScreenState extends State<AuthScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<CommerceProvider>();
+    final themeProvider = context.watch<ThemeProvider>();
 
     return Scaffold(
       appBar: AppBar(
@@ -40,6 +43,47 @@ class _AuthScreenState extends State<AuthScreen> {
           },
           icon: const Icon(Icons.arrow_back),
         ),
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: PopupMenuButton<String>(
+              onSelected: (themeName) {
+                themeProvider.setTheme(themeName);
+              },
+              itemBuilder: (BuildContext context) {
+                return AppThemes.allThemes.keys.map((themeName) {
+                  final themeNames = AppThemes.themeNames;
+                  final isSelected = themeProvider.isTheme(themeName);
+                  return PopupMenuItem<String>(
+                    value: themeName,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (isSelected) const Icon(Icons.check, size: 18),
+                        if (isSelected) const SizedBox(width: 8),
+                        Text(themeNames[themeName] ?? themeName),
+                      ],
+                    ),
+                  );
+                }).toList();
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.palette),
+                    const SizedBox(width: 4),
+                    Text(
+                      AppThemes.themeNames[themeProvider.currentTheme] ?? 'Theme',
+                      style: const TextStyle(fontSize: 12),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       body: Center(
         child: SingleChildScrollView(

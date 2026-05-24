@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../models/commerce_models.dart';
 import '../providers/commerce_provider.dart';
 import '../utils/app_config.dart';
+import 'auth_screen.dart';
 
 class BuyerCartScreen extends StatefulWidget {
   const BuyerCartScreen({super.key});
@@ -24,6 +25,42 @@ class _BuyerCartScreenState extends State<BuyerCartScreen> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<CommerceProvider>();
+
+    // If guest, show message to sign in
+    if (provider.isGuest) {
+      return SafeArea(
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Card(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.shopping_cart, size: 48, color: Colors.grey),
+                    const SizedBox(height: 16),
+                    Text('Cart is only available for buyers', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 8),
+                    const Text('Sign in as a buyer to add items to your cart and checkout.'),
+                    const SizedBox(height: 24),
+                    FilledButton.icon(
+                      onPressed: () {
+                        provider.showAuth();
+                        Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AuthScreen()));
+                      },
+                      icon: const Icon(Icons.login),
+                      label: const Text('Sign in'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return SafeArea(
       child: ListView(

@@ -57,6 +57,28 @@ class CommerceApiService {
     return ApiAuthResult.fromJson(Map<String, dynamic>.from(jsonDecode(response.body) as Map));
   }
 
+  Future<AuthUser> updateProfile({
+    required int userId,
+    required String name,
+    required String email,
+    String? password,
+  }) async {
+    final body = {
+      'name': name,
+      'email': email,
+    };
+    if (password != null && password.isNotEmpty) {
+      body['password'] = password;
+    }
+    final response = await http.put(
+      _uri('/api/auth/profile/$userId'),
+      headers: const {'Content-Type': 'application/json'},
+      body: jsonEncode(body),
+    );
+    _ensureSuccess(response);
+    return AuthUser.fromJson(Map<String, dynamic>.from(jsonDecode(response.body) as Map));
+  }
+
   Future<List<Shop>> fetchShops() async {
     final response = await http.get(_uri('/api/shops'));
     _ensureSuccess(response);
