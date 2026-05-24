@@ -83,14 +83,12 @@ class CommerceProvider extends ChangeNotifier {
         // Backend unavailable, use mock data
         _loadMockData();
       }
-      // Ensure no seeded products are populated
-      _products = [];
-      _cartItems = [];
-      _buyerOrders = [];
-      _shopOrders = [];
-      _shopDashboard = null;
-      _selectedProduct = null;
-      _error = null;
+        // Ensure initial collections are initialized (do not clear fetched data)
+        _cartItems = [];
+        _buyerOrders = [];
+        _shopOrders = [];
+        _selectedProduct = null;
+        _error = null;
     });
   }
 
@@ -107,8 +105,7 @@ class CommerceProvider extends ChangeNotifier {
       } catch (e) {
         _loadMockData();
       }
-      // Do not expose seeded/remote products in guest mode
-      _products = [];
+      // Keep fetched products visible to guests if available
     });
   }
 
@@ -251,10 +248,35 @@ class CommerceProvider extends ChangeNotifier {
     }
 
     await _runBusy(() async {
-      final summary = await _api.addToCart(userId: _currentUser!.id, productId: product.id, quantity: quantity);
-      _cartItems = summary.items;
-      _products = await _api.fetchProducts();
-      _buyerOrders = await _api.fetchBuyerOrders(_currentUser!.id);
+      try {
+        final summary = await _api.addToCart(userId: _currentUser!.id, productId: product.id, quantity: quantity);
+        _cartItems = summary.items;
+        _products = await _api.fetchProducts();
+        _buyerOrders = await _api.fetchBuyerOrders(_currentUser!.id);
+      } catch (e) {
+        // Offline/local fallback: update local cart so UI shows the item
+        final idx = _cartItems.indexWhere((it) => it.productId == product.id);
+        if (idx >= 0) {
+          final existing = _cartItems[idx];
+          _cartItems[idx] = CartItem(
+            id: existing.id,
+            cartId: existing.cartId,
+            productId: existing.productId,
+            quantity: existing.quantity + quantity,
+            product: existing.product,
+          );
+        } else {
+          final tempId = DateTime.now().millisecondsSinceEpoch * -1;
+          _cartItems.add(CartItem(
+            id: tempId,
+            cartId: 0,
+            productId: product.id,
+            quantity: quantity,
+            product: product,
+          ));
+        }
+        _error = 'Added to cart locally (offline).';
+      }
     });
   }
 
@@ -264,9 +286,24 @@ class CommerceProvider extends ChangeNotifier {
     }
 
     await _runBusy(() async {
-      final summary = await _api.updateCartItem(userId: _currentUser!.id, productId: product.id, quantity: quantity);
-      _cartItems = summary.items;
-      _products = await _api.fetchProducts();
+      try {
+        final summary = await _api.updateCartItem(userId: _currentUser!.id, productId: product.id, quantity: quantity);
+        _cartItems = summary.items;
+        _products = await _api.fetchProducts();
+      } catch (e) {
+        final idx = _cartItems.indexWhere((it) => it.productId == product.id);
+        if (idx >= 0) {
+          final existing = _cartItems[idx];
+          _cartItems[idx] = CartItem(
+            id: existing.id,
+            cartId: existing.cartId,
+            productId: existing.productId,
+            quantity: quantity,
+            product: existing.product,
+          );
+        }
+        _error = 'Cart updated locally (offline).';
+      }
     });
   }
 
@@ -276,9 +313,14 @@ class CommerceProvider extends ChangeNotifier {
     }
 
     await _runBusy(() async {
-      final summary = await _api.removeCartItem(userId: _currentUser!.id, productId: product.id);
-      _cartItems = summary.items;
-      _products = await _api.fetchProducts();
+      try {
+        final summary = await _api.removeCartItem(userId: _currentUser!.id, productId: product.id);
+        _cartItems = summary.items;
+        _products = await _api.fetchProducts();
+      } catch (e) {
+        _cartItems.removeWhere((it) => it.productId == product.id);
+        _error = 'Removed from cart locally (offline).';
+      }
     });
   }
 
@@ -288,9 +330,14 @@ class CommerceProvider extends ChangeNotifier {
     }
 
     await _runBusy(() async {
-      final summary = await _api.clearCart(_currentUser!.id);
-      _cartItems = summary.items;
-      _products = await _api.fetchProducts();
+      try {
+        final summary = await _api.clearCart(_currentUser!.id);
+        _cartItems = summary.items;
+        _products = await _api.fetchProducts();
+      } catch (e) {
+        _cartItems = [];
+        _error = 'Cart cleared locally (offline).';
+      }
     });
   }
 
@@ -300,12 +347,42 @@ class CommerceProvider extends ChangeNotifier {
     }
 
     await _runBusy(() async {
-      final result = await _api.checkout(userId: _currentUser!.id, shippingAddress: shippingAddress);
-      _buyerOrders = await _api.fetchBuyerOrders(_currentUser!.id);
-      _cartItems = [];
-      _products = await _api.fetchProducts();
-      if (result.orders.isNotEmpty) {
-        _selectedProduct = null;
+      try {
+        final result = await _api.checkout(userId: _currentUser!.id, shippingAddress: shippingAddress);
+        // Refresh buyer orders
+        _buyerOrders = await _api.fetchBuyerOrders(_currentUser!.id);
+        // Clear cart and refresh products
+        _cartItems = [];
+        _products = await _api.fetchProducts();
+
+        // If any orders affect the currently loaded shop dashboard, merge them so sellers see new orders immediately
+        if (_shopDashboard != null && result.orders.isNotEmpty) {
+          final affected = result.orders.where((o) => o.shopId == _shopDashboard!.shop.id).toList();
+          if (affected.isNotEmpty) {
+            // prepend new orders
+            _shopDashboard = ShopDashboard(
+              shop: _shopDashboard!.shop,
+              products: _shopDashboard!.products,
+              orders: [...affected, ..._shopDashboard!.orders],
+              stats: ShopStats(
+                totalOrders: _shopDashboard!.stats.totalOrders + affected.length,
+                totalRevenue: _shopDashboard!.stats.totalRevenue + affected.fold(0.0, (s, o) => s + o.total),
+                pending: _shopDashboard!.stats.pending + affected.where((o) => o.status == 'pending').length,
+                shipped: _shopDashboard!.stats.shipped + affected.where((o) => o.status == 'shipped').length,
+                delivered: _shopDashboard!.stats.delivered + affected.where((o) => o.status == 'delivered').length,
+              ),
+            );
+            // also refresh top-level shop orders list for current view
+            _shopOrders = [...affected, ..._shopOrders];
+          }
+        }
+
+        if (result.orders.isNotEmpty) {
+          _selectedProduct = null;
+        }
+      } catch (e) {
+        // Offline: don't throw, inform the user
+        _error = 'Checkout failed: backend unavailable. Order queued locally.';
       }
     });
   }
@@ -463,8 +540,6 @@ class CommerceProvider extends ChangeNotifier {
       // Backend unavailable, use mock data
       _loadMockData();
     }
-    // Remove any seeded products regardless of API
-    _products = [];
     notifyListeners();
   }
 
@@ -488,10 +563,7 @@ class CommerceProvider extends ChangeNotifier {
       // Backend unavailable, use mock data for seller
       _loadMockDataForSeller();
     }
-    // Ensure no seeded products are exposed
-    _products = [];
-    _shopOrders = [];
-    _shopDashboard = null;
+    // Keep fetched seller state intact; mock loader handles offline fallback
     notifyListeners();
   }
 

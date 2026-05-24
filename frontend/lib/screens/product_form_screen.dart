@@ -64,11 +64,13 @@ class _ProductFormScreenState extends State<ProductFormScreen> {
             const SizedBox(height: 12),
             TextFormField(controller: _descriptionController, decoration: const InputDecoration(labelText: 'Description'), maxLines: 4, validator: _required),
             const SizedBox(height: 12),
-            // Category dropdown
+            // Category dropdown (robust: de-duplicate provider categories and ensure initial value exists)
             Consumer<CommerceProvider>(builder: (context, provider, _) {
+              final unique = provider.categories.toSet().toList();
+              final initial = unique.contains(_categoryController.text) ? _categoryController.text : null;
               return DropdownButtonFormField<String>(
-                initialValue: _categoryController.text.isEmpty ? 'General' : _categoryController.text,
-                items: provider.categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                initialValue: initial ?? (unique.isNotEmpty ? unique.first : null),
+                items: unique.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                 onChanged: (v) => _categoryController.text = v ?? 'General',
                 decoration: const InputDecoration(labelText: 'Category'),
                 validator: _required,
