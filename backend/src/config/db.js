@@ -1,7 +1,5 @@
 import mysql from 'mysql2/promise';
 import { DB_HOST, DB_NAME, DB_PASSWORD, DB_USER, RESET_DB_ON_START } from './env.js';
-import { hashPassword } from '../utils/security.js';
-import { seedCartItems, seedCarts, seedOrderItems, seedOrders, seedProducts, seedShops, seedUsers } from '../data/seedData.js';
 
 let pool;
 let initPromise;
@@ -15,17 +13,6 @@ function buildPool() {
         waitForConnections: true,
         connectionLimit: 10,
     });
-}
-
-async function insertRowsIfEmpty(connection, tableName, rows, insertSql, mapRow) {
-    const [countRows] = await connection.query(`SELECT COUNT(*) AS count FROM ${tableName}`);
-    if (countRows[0].count > 0) {
-        return;
-    }
-
-    for (const row of rows) {
-        await connection.query(insertSql, mapRow(row));
-    }
 }
 
 async function resetSchema(connection) {
@@ -182,61 +169,8 @@ export async function initDatabase() {
         await createSchema(pool);
         await ensureProductOwnerColumn(pool);
 
-        await insertRowsIfEmpty(
-            pool,
-            'users',
-            seedUsers,
-            'INSERT INTO users (id, name, email, password_hash, role, avatar_url) VALUES (?, ?, ?, ?, ?, ?)',
-            (row) => [row.id, row.name, row.email, hashPassword(row.password), row.role, row.avatarUrl],
-        );
-
-        await insertRowsIfEmpty(
-            pool,
-            'shops',
-            seedShops,
-            'INSERT INTO shops (id, owner_user_id, name, description, logo_url) VALUES (?, ?, ?, ?, ?)',
-            (row) => [row.id, row.ownerUserId, row.name, row.description, row.logoUrl],
-        );
-
-        await insertRowsIfEmpty(
-            pool,
-            'products',
-            seedProducts,
-            'INSERT INTO products (id, shop_id, owner_user_id, name, description, price, stock, category, image_url) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-            (row) => [row.id, row.shopId, row.ownerUserId, row.name, row.description, row.price, row.stock, row.category, row.imageUrl],
-        );
-
-        await insertRowsIfEmpty(
-            pool,
-            'carts',
-            seedCarts,
-            'INSERT INTO carts (id, user_id) VALUES (?, ?)',
-            (row) => [row.id, row.userId],
-        );
-
-        await insertRowsIfEmpty(
-            pool,
-            'cart_items',
-            seedCartItems,
-            'INSERT INTO cart_items (id, cart_id, product_id, quantity) VALUES (?, ?, ?, ?)',
-            (row) => [row.id, row.cartId, row.productId, row.quantity],
-        );
-
-        await insertRowsIfEmpty(
-            pool,
-            'orders',
-            seedOrders,
-            'INSERT INTO orders (id, buyer_user_id, shop_id, status, subtotal, total, shipping_address) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            (row) => [row.id, row.buyerUserId, row.shopId, row.status, row.subtotal, row.total, row.shippingAddress],
-        );
-
-        await insertRowsIfEmpty(
-            pool,
-            'order_items',
-            seedOrderItems,
-            'INSERT INTO order_items (id, order_id, product_id, product_name, price, quantity, image_url) VALUES (?, ?, ?, ?, ?, ?, ?)',
-            (row) => [row.id, row.orderId, row.productId, row.productName, row.price, row.quantity, row.imageUrl],
-        );
+        // Seed data is now handled by the standalone seed script (npm run seed)
+        // Remove auto-seeding calls - they're in scripts/seed.js
 
         return pool;
     })();
