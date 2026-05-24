@@ -91,7 +91,19 @@ class ShopScreen extends StatelessWidget {
                           icon: const Icon(Icons.edit),
                         ),
                         IconButton(
-                          onPressed: () => provider.deleteProduct(product.id),
+                          onPressed: () async {
+                            try {
+                              await provider.deleteProduct(product.id);
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Product deleted')),
+                              );
+                            } catch (_) {
+                              final message = provider.error ?? 'Failed to delete product';
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text(message)),
+                              );
+                            }
+                          },
                           icon: const Icon(Icons.delete_outline),
                         ),
                       ],

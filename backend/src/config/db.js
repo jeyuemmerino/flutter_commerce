@@ -65,6 +65,7 @@ async function createSchema(connection) {
             stock INT NOT NULL DEFAULT 0,
             category VARCHAR(120) NOT NULL,
             image_url TEXT,
+            is_active TINYINT(1) NOT NULL DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             CONSTRAINT fk_products_owner FOREIGN KEY (owner_user_id) REFERENCES users(id) ON DELETE CASCADE,
             CONSTRAINT fk_products_shop FOREIGN KEY (shop_id) REFERENCES shops(id) ON DELETE CASCADE
@@ -126,19 +127,22 @@ async function createSchema(connection) {
 }
 
 async function ensureProductOwnerColumn(connection) {
-    const [columns] = await connection.query("SHOW COLUMNS FROM products LIKE 'owner_user_id'");
+    const [ownerColumns] = await connection.query("SHOW COLUMNS FROM products LIKE 'owner_user_id'");
 
-    if (columns.length > 0) {
-        return;
+    if (ownerColumns.length === 0) {
+        await connection.query('ALTER TABLE products ADD COLUMN owner_user_id INT NOT NULL DEFAULT 0 AFTER shop_id');
+        await connection.query(`
+            UPDATE products
+            JOIN shops ON shops.id = products.shop_id
+            SET products.owner_user_id = shops.owner_user_id
+        `);
+        await connection.query('ALTER TABLE products MODIFY owner_user_id INT NOT NULL');
     }
 
-    await connection.query('ALTER TABLE products ADD COLUMN owner_user_id INT NOT NULL DEFAULT 0 AFTER shop_id');
-    await connection.query(`
-        UPDATE products
-        JOIN shops ON shops.id = products.shop_id
-        SET products.owner_user_id = shops.owner_user_id
-    `);
-    await connection.query('ALTER TABLE products MODIFY owner_user_id INT NOT NULL');
+    const [activeColumns] = await connection.query("SHOW COLUMNS FROM products LIKE 'is_active'");
+    if (activeColumns.length === 0) {
+        await connection.query('ALTER TABLE products ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1 AFTER image_url');
+    }
 }
 
 export async function initDatabase() {

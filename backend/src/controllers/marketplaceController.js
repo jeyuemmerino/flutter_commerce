@@ -56,6 +56,7 @@ function mapProduct(row) {
         stock: numberOrZero(row.stock),
         category: row.category,
         imageUrl: row.image_url || '',
+        isActive: row.is_active === 1,
         createdAt: row.created_at,
     };
 }
@@ -192,7 +193,7 @@ async function getProductsByShop(shopId) {
         SELECT products.*, shops.name AS shop_name, shops.owner_user_id
         FROM products
         JOIN shops ON shops.id = products.shop_id
-        WHERE products.shop_id = ?
+        WHERE products.shop_id = ? AND products.is_active = 1
         ORDER BY products.created_at DESC, products.id DESC
         `,
         [shopId],
@@ -207,6 +208,7 @@ async function getAllProducts() {
         SELECT products.*, shops.name AS shop_name, shops.owner_user_id
         FROM products
         JOIN shops ON shops.id = products.shop_id
+        WHERE products.is_active = 1
         ORDER BY products.created_at DESC, products.id DESC
         `,
         [],
@@ -221,7 +223,7 @@ async function getProductById(productId) {
         SELECT products.*, shops.name AS shop_name, shops.owner_user_id
         FROM products
         JOIN shops ON shops.id = products.shop_id
-        WHERE products.id = ?
+        WHERE products.id = ? AND products.is_active = 1
         LIMIT 1
         `,
         [productId],
@@ -621,6 +623,12 @@ export async function removeProduct(req, res) {
     const shop = await getShopById(existing.shopId);
     if (!shop || shop.ownerUserId !== ownerUserId) {
         return res.status(403).json({ message: 'You can only manage your own shop' });
+    }
+
+    const orderItemRef = await query('SELECT 1 FROM order_items WHERE product_id = ? LIMIT 1', [productId]);
+    if (orderItemRef.length > 0) {
+        await query('UPDATE products SET is_active = 0 WHERE id = ?', [productId]);
+        return res.json({ message: 'Product archived because it is referenced by existing orders.' });
     }
 
     await query('DELETE FROM products WHERE id = ?', [productId]);
