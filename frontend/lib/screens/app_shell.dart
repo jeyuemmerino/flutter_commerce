@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/marketplace_provider.dart';
-import 'ai_screen.dart';
+import '../models/commerce_models.dart';
+import '../providers/commerce_provider.dart';
+import 'browse_screen.dart';
 import 'cart_screen.dart';
-import 'checkout_screen.dart';
-import 'dashboard_screen.dart';
-import 'home_screen.dart';
-import 'search_screen.dart';
+import 'invoice_screen.dart';
+import 'orders_screen.dart';
+import 'profile_screen.dart';
+import 'product_detail_screen.dart';
+import 'product_form_screen.dart';
+import 'shop_screen.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -17,46 +20,86 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
-  int _currentIndex = 0;
-
-  void _setIndex(int index) {
-    setState(() => _currentIndex = index);
-  }
+  int _index = 0;
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<MarketplaceProvider>();
+    final provider = context.watch<CommerceProvider>();
 
-    final pages = [
-      HomeScreen(onSelectCheckout: () => _setIndex(3)),
-      const SearchScreen(),
-      CartScreen(onCheckout: () => _setIndex(3)),
-      const CheckoutScreen(),
-      const DashboardScreen(),
-      const AiScreen(),
-    ];
+    if (provider.isGuest) {
+      return Scaffold(
+        body: BrowseScreen(onProductTap: (product) => _openProduct(context, product)),
+      );
+    }
+
+    // Ensure we're in a valid state; if not, show loading
+    if (!provider.isSeller && !provider.isBuyer) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    final isSeller = provider.isSeller;
+    final pages = isSeller
+        ? [
+            ShopScreen(
+              onAddProduct: () => _openProductForm(context),
+              onEditProduct: (product) => _openProductForm(context, product: product),
+              onProductTap: (product) => _openProduct(context, product),
+            ),
+            OrdersScreen(forSeller: true, onOpenInvoice: (order) => _openInvoice(context, order.id)),
+            const ProfileScreen(),
+          ]
+        : [
+            BrowseScreen(onProductTap: (product) => _openProduct(context, product)),
+            const BuyerCartScreen(),
+            OrdersScreen(forSeller: false, onOpenInvoice: (order) => _openInvoice(context, order.id)),
+            const ProfileScreen(),
+          ];
+
+    final destinations = isSeller
+        ? const [
+            NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Shop'),
+            NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Orders'),
+            NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
+          ]
+        : const [
+            NavigationDestination(icon: Icon(Icons.storefront_outlined), selectedIcon: Icon(Icons.storefront), label: 'Browse'),
+            NavigationDestination(icon: Icon(Icons.shopping_cart_outlined), selectedIcon: Icon(Icons.shopping_cart), label: 'Cart'),
+            NavigationDestination(icon: Icon(Icons.receipt_long_outlined), selectedIcon: Icon(Icons.receipt_long), label: 'Orders'),
+            NavigationDestination(icon: Icon(Icons.person_outline), selectedIcon: Icon(Icons.person), label: 'Profile'),
+          ];
+
+    // Defensive check: ensure we have valid destinations (should always be true)
+    if (destinations.length < 2 || pages.length != destinations.length) {
+      return const Scaffold(
+        body: Center(
+          child: Text('Navigation configuration error'),
+        ),
+      );
+    }
 
     return Scaffold(
-      body: IndexedStack(index: _currentIndex, children: pages),
+      body: IndexedStack(index: _index.clamp(0, pages.length - 1), children: pages),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _currentIndex,
-        onDestinationSelected: _setIndex,
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'Home'),
-          NavigationDestination(icon: Icon(Icons.search_outlined), selectedIcon: Icon(Icons.search), label: 'Search'),
-          NavigationDestination(icon: Icon(Icons.shopping_cart_outlined), selectedIcon: Icon(Icons.shopping_cart), label: 'Cart'),
-          NavigationDestination(icon: Icon(Icons.payments_outlined), selectedIcon: Icon(Icons.payments), label: 'Checkout'),
-          NavigationDestination(icon: Icon(Icons.insights_outlined), selectedIcon: Icon(Icons.insights), label: 'Dashboard'),
-          NavigationDestination(icon: Icon(Icons.auto_awesome_outlined), selectedIcon: Icon(Icons.auto_awesome), label: 'AI'),
-        ],
+        selectedIndex: _index.clamp(0, destinations.length - 1),
+        onDestinationSelected: (value) => setState(() => _index = value),
+        destinations: destinations,
       ),
-      floatingActionButton: provider.cartItems.isEmpty
-          ? null
-          : FloatingActionButton.extended(
-              onPressed: () => _setIndex(2),
-              icon: const Icon(Icons.shopping_bag),
-              label: Text('${provider.cartItems.length} in cart'),
-            ),
     );
+  }
+
+  void _openProduct(BuildContext context, Product product) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProductDetailScreen(product: product)));
+  }
+
+  void _openProductForm(BuildContext context, {Product? product}) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => ProductFormScreen(product: product)));
+  }
+
+  void _openInvoice(BuildContext context, int orderId) {
+    Navigator.of(context).push(MaterialPageRoute(builder: (_) => InvoiceScreen(orderId: orderId)));
   }
 }

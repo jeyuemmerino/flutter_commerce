@@ -1,9 +1,12 @@
 import { Router } from 'express';
-import { listMarketplaceOrders, placeOrder } from '../controllers/marketplaceController.js';
+import { checkoutCart, getBuyerOrders, getInvoice, getShopOrders, updateOrderStatus } from '../controllers/marketplaceController.js';
 
 const router = Router();
 
-router.get('/', listMarketplaceOrders);
-router.post('/', placeOrder);
+router.post('/checkout', checkoutCart);
+router.get('/buyer/:userId', getBuyerOrders);
+router.get('/shop/:shopId', getShopOrders);
+router.get('/:orderId/invoice', getInvoice);
+router.patch('/:orderId/status', updateOrderStatus);
 
 export default router;

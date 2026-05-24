@@ -1,108 +1,111 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/marketplace_provider.dart';
-import '../widgets/section_card.dart';
+import '../models/commerce_models.dart';
+import '../providers/commerce_provider.dart';
+import '../utils/app_config.dart';
 
-class CartScreen extends StatelessWidget {
-  const CartScreen({super.key, required this.onCheckout});
+class BuyerCartScreen extends StatefulWidget {
+  const BuyerCartScreen({super.key});
 
-  final VoidCallback onCheckout;
+  @override
+  State<BuyerCartScreen> createState() => _BuyerCartScreenState();
+}
+
+class _BuyerCartScreenState extends State<BuyerCartScreen> {
+  final _addressController = TextEditingController(text: '123 Local Demo Street');
+
+  @override
+  void dispose() {
+    _addressController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<MarketplaceProvider>();
+    final provider = context.watch<CommerceProvider>();
 
     return SafeArea(
-      child: Padding(
+      child: ListView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Cart',
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
-            ),
-            const SizedBox(height: 16),
-            Expanded(
-              child: provider.cartItems.isEmpty
-                  ? const Center(child: Text('Your cart is empty. Add a few products to get started.'))
-                  : ListView.separated(
-                      itemCount: provider.cartItems.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 12),
-                      itemBuilder: (context, index) {
-                        final item = provider.cartItems[index];
-                        return SectionCard(
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 54,
-                                height: 54,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF1F2937),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    item.product.category.isEmpty ? '?' : item.product.category.substring(0, 1).toUpperCase(),
-                                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 22),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(item.product.name, style: const TextStyle(fontWeight: FontWeight.w800)),
-                                    const SizedBox(height: 4),
-                                    Text(_money(item.product.price)),
-                                    const SizedBox(height: 4),
-                                    Text('Line total: ${_money(item.lineTotal)}', style: const TextStyle(color: Color(0xFF6B7280))),
-                                  ],
-                                ),
-                              ),
-                              Column(
-                                children: [
-                                  IconButton(
-                                    onPressed: () => provider.increaseQuantity(item.product),
-                                    icon: const Icon(Icons.add_circle_outline),
-                                  ),
-                                  Text('${item.quantity}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                                  IconButton(
-                                    onPressed: () => provider.decreaseQuantity(item.product),
-                                    icon: const Icon(Icons.remove_circle_outline),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        );
-                      },
-                    ),
-            ),
-            const SizedBox(height: 12),
-            SectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Subtotal', style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 8),
-                  Text(_money(provider.cartSubtotal), style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 12),
-                  FilledButton.icon(
-                    onPressed: provider.cartItems.isEmpty ? null : onCheckout,
-                    icon: const Icon(Icons.payments),
-                    label: const Text('Proceed to checkout'),
-                  ),
-                ],
+        children: [
+          Text('Your cart', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 16),
+          if (provider.cartItems.isEmpty)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 40),
+              child: Center(child: Text('Your cart is empty.')),
+            )
+          else
+            ...provider.cartItems.map(
+              (item) => _CartItemCard(
+                item: item,
+                onIncrease: () => provider.updateCartItem(item.product, item.quantity + 1),
+                onDecrease: () => provider.updateCartItem(item.product, item.quantity - 1),
+                onRemove: () => provider.removeFromCart(item.product),
               ),
             ),
+          const SizedBox(height: 20),
+          TextField(controller: _addressController, decoration: const InputDecoration(labelText: 'Shipping address'), minLines: 2, maxLines: 3),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(child: Text('Subtotal: \$${provider.cartSubtotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800))),
+              const SizedBox(width: 12),
+              FilledButton(
+                onPressed: provider.busy
+                    ? null
+                    : () async {
+                        await provider.checkout(_addressController.text);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Checkout complete')));
+                        }
+                      },
+                child: const Text('Checkout'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CartItemCard extends StatelessWidget {
+  const _CartItemCard({required this.item, required this.onIncrease, required this.onDecrease, required this.onRemove});
+
+  final CartItem item;
+  final VoidCallback onIncrease;
+  final VoidCallback onDecrease;
+  final VoidCallback onRemove;
+
+  @override
+  Widget build(BuildContext context) {
+    final product = item.product;
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: ListTile(
+        leading: product.imageUrl.isEmpty
+            ? const CircleAvatar(child: Icon(Icons.shopping_bag))
+            : ClipRRect(borderRadius: BorderRadius.circular(8), child: Image.network(_resolveImageUrl(product.imageUrl), width: 48, height: 48, fit: BoxFit.cover)),
+        title: Text(product.name),
+        subtitle: Text('Qty ${item.quantity} • \$${product.price.toStringAsFixed(2)}'),
+        trailing: Wrap(
+          spacing: 4,
+          children: [
+            IconButton(onPressed: item.quantity > 1 ? onDecrease : onRemove, icon: const Icon(Icons.remove_circle_outline)),
+            IconButton(onPressed: onIncrease, icon: const Icon(Icons.add_circle_outline)),
           ],
         ),
       ),
     );
   }
 
-  String _money(double value) => '\$${value.toStringAsFixed(2)}';
+  String _resolveImageUrl(String imageUrl) {
+    if (imageUrl.startsWith('http')) {
+      return imageUrl;
+    }
+    return '$apiBaseUrl$imageUrl';
+  }
 }

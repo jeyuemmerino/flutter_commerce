@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/marketplace_provider.dart';
+import '../providers/commerce_provider.dart';
 import '../widgets/product_card.dart';
 import '../widgets/section_card.dart';
 import 'product_detail_screen.dart';
@@ -13,7 +13,7 @@ class HomeScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<MarketplaceProvider>();
+    final provider = context.watch<CommerceProvider>();
     final featuredProducts = provider.products.take(4).toList();
     final categories = provider.products.map((product) => product.category).toSet().toList();
 

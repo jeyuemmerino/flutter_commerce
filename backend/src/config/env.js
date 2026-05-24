@@ -19,3 +19,4 @@ export const DB_HOST = process.env.DB_HOST || 'localhost';
 export const DB_USER = process.env.DB_USER || 'root';
 export const DB_PASSWORD = process.env.DB_PASSWORD || process.env.mysqlpassword || '';
 export const DB_NAME = process.env.DB_NAME || 'ecommerce_db';
+export const RESET_DB_ON_START = (process.env.RESET_DB_ON_START || 'true').toLowerCase() !== 'false';

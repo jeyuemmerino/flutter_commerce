@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/marketplace_provider.dart';
+import '../providers/commerce_provider.dart';
 import '../widgets/product_card.dart';
 import 'product_detail_screen.dart';
 
@@ -10,7 +10,7 @@ class SearchScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<MarketplaceProvider>();
+    final provider = context.watch<CommerceProvider>();
 
     return SafeArea(
       child: Padding(

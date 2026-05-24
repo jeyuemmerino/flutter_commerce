@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../providers/marketplace_provider.dart';
+import '../providers/commerce_provider.dart';
 import '../widgets/section_card.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -9,12 +9,12 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<MarketplaceProvider>();
-    final analytics = provider.analytics;
+    final provider = context.watch<CommerceProvider>();
+    final dashboard = provider.shopDashboard;
 
     return SafeArea(
       child: RefreshIndicator(
-        onRefresh: provider.bootstrap,
+        onRefresh: provider.reloadCurrentView,
         child: ListView(
           padding: const EdgeInsets.all(16),
           physics: const AlwaysScrollableScrollPhysics(),
@@ -24,16 +24,25 @@ class DashboardScreen extends StatelessWidget {
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 16),
-            if (analytics == null)
+            if (provider.busy)
               const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()))
+            else if (dashboard == null)
+              const Center(
+                child: Text(
+                  'No shop yet. Create one first!',
+                  style: TextStyle(fontSize: 16),
+                ),
+              )
             else ...[
               Wrap(
                 spacing: 12,
                 runSpacing: 12,
                 children: [
-                  _MetricCard(label: 'Revenue', value: _money(analytics.totalRevenue)),
-                  _MetricCard(label: 'Orders', value: '${analytics.totalOrders}'),
-                  _MetricCard(label: 'Best category', value: analytics.bestSellingCategory),
+                  _MetricCard(label: 'Revenue', value: _money(dashboard.stats.totalRevenue)),
+                  _MetricCard(label: 'Orders', value: '${dashboard.stats.totalOrders}'),
+                  _MetricCard(label: 'Pending', value: '${dashboard.stats.pending}'),
+                  _MetricCard(label: 'Shipped', value: '${dashboard.stats.shipped}'),
+                  _MetricCard(label: 'Delivered', value: '${dashboard.stats.delivered}'),
                 ],
               ),
               const SizedBox(height: 18),
@@ -41,17 +50,24 @@ class DashboardScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Top products', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                    Text('Shop Info', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
                     const SizedBox(height: 12),
-                    ...analytics.topProducts.map(
-                      (item) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Row(
-                          children: [
-                            Expanded(child: Text(item['name'].toString(), style: const TextStyle(fontWeight: FontWeight.w600))),
-                            Text('${item['quantity']} sold'),
-                          ],
-                        ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(
+                        children: [
+                          Expanded(child: Text('Shop Name', style: const TextStyle(fontWeight: FontWeight.w600))),
+                          Text(dashboard.shop.name),
+                        ],
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Row(
+                        children: [
+                          Expanded(child: Text('Products', style: const TextStyle(fontWeight: FontWeight.w600))),
+                          Text('${dashboard.products.length}'),
+                        ],
                       ),
                     ),
                   ],
@@ -62,19 +78,33 @@ class DashboardScreen extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Category performance', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+                    Text('Recent Orders', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
                     const SizedBox(height: 12),
-                    ...analytics.categoryPerformance.map(
-                      (item) => Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Row(
-                          children: [
-                            Expanded(child: Text(item['category'].toString())),
-                            Text(_money(double.tryParse(item['revenue'].toString()) ?? 0)),
-                          ],
+                    if (dashboard.orders.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Text('No orders yet'),
+                      )
+                    else
+                      ...dashboard.orders.map(
+                        (order) => Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('Order #${order.id}', style: const TextStyle(fontWeight: FontWeight.w600)),
+                                    Text(order.status, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                                  ],
+                                ),
+                              ),
+                              Text(_money(order.total)),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
                   ],
                 ),
               ),

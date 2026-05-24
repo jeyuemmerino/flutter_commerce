@@ -1,117 +1,78 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../models/marketplace_models.dart';
-import '../providers/marketplace_provider.dart';
-import '../widgets/section_card.dart';
+import '../models/commerce_models.dart';
+import '../providers/commerce_provider.dart';
+import '../utils/app_config.dart';
 
-class ProductDetailScreen extends StatefulWidget {
+class ProductDetailScreen extends StatelessWidget {
   const ProductDetailScreen({super.key, required this.product});
 
   final Product product;
 
   @override
-  State<ProductDetailScreen> createState() => _ProductDetailScreenState();
-}
-
-class _ProductDetailScreenState extends State<ProductDetailScreen> {
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<MarketplaceProvider>().setActiveProduct(widget.product);
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final provider = context.watch<MarketplaceProvider>();
-    final recommendations = provider.recommendations;
+    final provider = context.watch<CommerceProvider>();
 
     return Scaffold(
-      appBar: AppBar(title: Text(widget.product.name)),
+      appBar: AppBar(title: Text(product.name)),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          SectionCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  height: 180,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(18),
-                    color: const Color(0xFF1F2937),
-                  ),
-                  child: Center(
-                    child: Text(
-                      widget.product.category.isEmpty ? '?' : widget.product.category.substring(0, 1).toUpperCase(),
-                      style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 52),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: product.imageUrl.isEmpty
+                ? Container(
+                    height: 240,
+                    color: const Color(0xFFE2E8F0),
+                    child: const Center(child: Icon(Icons.image_not_supported, size: 72)),
+                  )
+                : Image.network(
+                    _resolveImageUrl(product.imageUrl),
+                    height: 240,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      height: 240,
+                      color: const Color(0xFFE2E8F0),
+                      child: const Center(child: Icon(Icons.image_not_supported, size: 72)),
                     ),
                   ),
-                ),
-                const SizedBox(height: 14),
-                Text(widget.product.category, style: const TextStyle(color: Color(0xFFB45309), fontWeight: FontWeight.w700)),
-                const SizedBox(height: 6),
-                Text(widget.product.name, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w900)),
-                const SizedBox(height: 8),
-                Text(widget.product.description),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Text(_money(widget.product.price), style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900)),
-                    const Spacer(),
-                    Text('Stock: ${widget.product.stock}'),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                FilledButton.icon(
-                  onPressed: () => provider.addToCart(widget.product),
-                  icon: const Icon(Icons.add_shopping_cart),
-                  label: const Text('Add to cart'),
-                ),
-              ],
-            ),
           ),
+          const SizedBox(height: 20),
+          Text(product.shopName, style: const TextStyle(color: Colors.orange, fontWeight: FontWeight.w800)),
+          const SizedBox(height: 6),
+          Text(product.name, style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w900)),
+          const SizedBox(height: 8),
+          Text(product.description),
           const SizedBox(height: 16),
-          if (recommendations != null) ...[
-            SectionCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Frequently bought together', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 10),
-                  if (recommendations.frequentlyBoughtTogether.isEmpty)
-                    const Text('No co-purchase data yet.')
-                  else
-                    ...recommendations.frequentlyBoughtTogether.map(
-                      (product) => Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: Text('${product.name} - ${_money(product.price)}'),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 12),
-          ],
-          SectionCard(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Simulated AI description', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-                const SizedBox(height: 10),
-                Text(
-                  provider.generatedDescription ??
-                      'Use the AI tab to generate a marketing-style description for ${widget.product.name}.',
-                ),
-              ],
-            ),
+          Row(
+            children: [
+              Text('\$${product.price.toStringAsFixed(2)}', style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w900)),
+              const Spacer(),
+              Text('Stock: ${product.stock}'),
+            ],
           ),
+          const SizedBox(height: 20),
+          if (provider.isBuyer)
+            FilledButton.icon(
+              onPressed: () async {
+                await provider.addToCart(product);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Added to cart')));
+                }
+              },
+              icon: const Icon(Icons.shopping_cart),
+              label: const Text('Add to cart'),
+            ),
         ],
       ),
     );
   }
-}
 
-String _money(double value) => '\$${value.toStringAsFixed(2)}';
+  String _resolveImageUrl(String imageUrl) {
+    if (imageUrl.startsWith('http')) {
+      return imageUrl;
+    }
+    return '$apiBaseUrl$imageUrl';
+  }
+}

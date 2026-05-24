@@ -4,8 +4,8 @@ import 'package:frontend/main.dart';
 
 void main() {
   testWidgets('Marketplace app boots', (WidgetTester tester) async {
-    await tester.pumpWidget(const MarketplaceApp());
+    await tester.pumpWidget(const CommerceApp());
 
-    expect(find.text('Local Marketplace Demo'), findsWidgets);
+    expect(find.text('Marketplace Demo'), findsWidgets);
   });
 }
